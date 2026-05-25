@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: payment-api
+    ports:
+      - "8000:8000"
+    networks:
+      - tls-net
+
+  nginx-tls12:
+    image: nginx:1.25-alpine
+    container_name: nginx-tls12
+    ports:
+      - "8443:443"
+    volumes:
+      - ./nginx/conf.d/tls12.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+    networks:
+      - tls-net
+
+  nginx-tls13:
+    image: nginx:1.25-alpine
+    container_name: nginx-tls13
+    ports:
+      - "9443:443"
+    volumes:
+      - ./nginx/conf.d/tls13.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - backend
+    networks:
+      - tls-net
+
+  testssl:
+    image: drwetter/testssl.sh:latest
+    container_name: testssl-scanner
+    depends_on:
+      - nginx-tls12
+      - nginx-tls13
+    networks:
+      - tls-net
+    entrypoint: ["sleep", "infinity"]
+
+networks:
+  tls-net:
+    driver: bridge
